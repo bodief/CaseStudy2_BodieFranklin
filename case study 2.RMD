@@ -1,0 +1,264 @@
+---
+title: "Attrition Analysis"
+author: "Bodie Franklin"
+date: "4/18/20"
+output:
+  html_document: default
+pdf_document: default
+word_document: default
+---
+```{r}
+#Youtube URL: https://www.youtube.com/watch?v=caHWKqq1_88
+
+library(tidyverse)
+library(caret)
+library(tidyr)
+library(dplyr)
+library(e1071)
+library(class)
+library(caret)
+library(mvtnorm)
+library(plyr)
+library(fpp)
+library(ggplot2)
+library(GGally)
+library(plotly)
+library(randomForest)
+
+# Open the file's and creating DF.
+
+case2 = read.csv(file = "C:/Users/bodie/Documents/case2data.csv",header = TRUE)
+attrition_set= read.csv(file = "C:/Users/bodie/Documents/Attrition.csv",header = TRUE)
+income = read.csv(file = "C:/Users/bodie/Documents/income.csv",header = TRUE)
+
+#Creating a custom column, so we can back into how many hours
+# a person is working per day
+case2$DailyHours <- case2$DailyRate/case2$HourlyRate
+
+
+
+#Attrition
+case2 %>% ggplot(aes(x = Attrition, fill = Attrition))+geom_bar()+
+  ggtitle("Total Attrition")+ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+
+#relationship EDA
+
+
+case2 %>% ggplot(aes(x = RelationshipSatisfaction, fill = MaritalStatus))+geom_bar()+ 
+  ggtitle("Relationship Satisfaction by Martial Status")+xlab("Relationship Satisfaction")+
+  ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+#job statisfaction within departments
+
+case2 %>% ggplot(aes(x = JobSatisfaction, fill = Department))+geom_bar()+
+  ggtitle("Job  Satisfaction by Department")+xlab("Job Satisfaction")+
+  ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+#Monthly income & Job Satisfaction
+#shows us that Job Satisfaction isn't influence by monthly income
+#since the histogram for each job satisfaction rating is the same
+case2$JobSatisfaction <- as.character(case2$JobSatisfaction)
+
+case2 %>% ggplot(aes(x  = MonthlyIncome, fill = JobSatisfaction))+geom_histogram()+facet_wrap(~JobSatisfaction)+
+  ggtitle("Monthly Income and Job Satisfaction")+xlab("Monthly Income")+ ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+#Monthly income and Attrition 
+case2 %>% ggplot(aes(x  = MonthlyIncome, fill = Attrition))+geom_histogram()+
+  ggtitle("Monthly Income and Attrition")+xlab("Monthly Income")+ ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+#### shows us that department doesn't determine jobstatsifaction 
+case2$JobSatisfaction <- as.numeric(case2$JobSatisfaction)
+
+case2 %>% ggplot(aes(x = JobSatisfaction, fill = Department))+geom_bar()+facet_wrap(~Department)
+
+# higher income with more working exp
+
+
+case2 %>% ggplot(aes(x = TotalWorkingYears,y = MonthlyIncome))+geom_point(color ="blue")+
+  ggtitle("Relationship between Monthly Income and Total Working Years")+xlab("Total Working Years")+
+  ylab("Monthly Income")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+
+
+#Attrition by department
+#shows that all departments is experenecing it.
+
+case2 %>% ggplot(aes(x = Department, fill = Attrition))+geom_bar()+
+  ggtitle("Attrition by Department")
+
+## job statsifaction doesn't matter with Attrition 
+case2$JobSatisfaction <- as.character(case2$JobSatisfaction)
+case2 %>% ggplot(aes( x = JobSatisfaction, fill = Attrition))+geom_bar()+
+  ggtitle("Attrition and Job Statisfaction")+ xlab("Job Satisfaction")+
+  ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+
+
+### Attrition by job role 
+
+case2 %>% ggplot(aes(x = JobRole, fill = Attrition))+geom_bar()+
+  ggtitle("Attrition by Job Role ")+xlab("Job role")+ylab("Count")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+### Attrition by Martial Status
+ 
+
+case2 %>% ggplot(aes(x = Attrition, fill = MaritalStatus))+geom_bar()+ggtitle("Attrition by Marital Status")+
+  xlab("Attrition")+ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+  
+#Work life balance 
+case2 %>% ggplot(aes(x = WorkLifeBalance,fill = Attrition))+geom_bar()+
+  ggtitle("Work life Balance in relation to Attrition")+xlab("Work Life Balance")+
+  ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+#This shows that Daily Hour doesn't seem to matter for employee retention
+#people who are working over 24 hours a day are clearly going to leave
+
+case2 %>% ggplot(aes(x= DailyHours,fill = Attrition))+geom_histogram()+
+  ggtitle("Attrition in Relation to Daily Hours worked")+ xlab("Daily Hours")+
+  ylab("Count")+theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title = element_text(size=22))+theme(axis.text=element_text(size=12),
+                                                  axis.title=element_text(size=14))
+
+
+
+
+
+##KNN model. Here we are creating the train and test sets. 
+# Changing Factors into numeric values in order to use for
+case2$BusinessTravel <- as.numeric(case2$BusinessTravel)
+case2$MaritalStatus <- as.numeric(case2$BusinessTravel)
+case2$OverTime  <- as.numeric(case2$OverTime)
+case2$JobSatisfaction <- as.numeric(case2$JobSatisfaction)
+case2$Age  <- scale(case2$Age)
+splitPerc = .7
+
+yes_case2 <- case2 %>% filter(Attrition=="Yes")
+no_case2 <- case2 %>% filter(Attrition=="No")
+
+traincase = sample(1:dim(yes_case2)[1],round(splitPerc * dim(yes_case2)[1]))
+yes_train = yes_case2[traincase,]
+yes_test = yes_case2[-traincase,]
+
+
+traincase1 = sample(1:dim(no_case2)[1],round(splitPerc * dim(no_case2)[1]))
+no_train = no_case2[traincase1,]
+no_test = no_case2[-traincase1,]
+
+
+
+
+train = rbind(yes_train,no_train)
+test = rbind(yes_test,no_test)
+
+
+
+
+accs1 = c()
+kvalue1 = c()
+sens1 = c()
+spec1 = c()
+var1_names = c()
+var2_names = c()
+xvalue = c()
+yvalue = c()
+zvalue = c()
+# Changing Factors into numeric values in order to use for
+
+
+
+set.seed(100)
+
+{for(i in 1:30)
+{
+  classifications = knn(train[,c(4,19,33)],test[,c(4,19,33)],train$Attrition,prob = TRUE, k = i)
+  CM = confusionMatrix(as.factor(test$Attrition),classifications)
+  kvalue1[i] = i
+  
+  accs1[i] = CM$overall[1]
+  sens1[i] = CM$byClass[1]
+  spec1[i] = CM$byClass[2]
+}
+}
+
+
+
+results1 <-cbind(kvalue1,accs1,sens1,spec1)
+
+print(results1)
+
+
+#Using NB
+
+
+NB_model <- naiveBayes(train[,c(4,19,33)],train$Attrition)
+confusionMatrix(table(predict(NB_model,test[,c(4,19,33)]),test$Attrition))
+
+##Random forest model 
+
+#For Random forest , we don't need to proptionaly randomize the data. 
+traincase_RF = sample(1:dim(case2)[1],round(splitPerc * dim(case2)[1]))
+train_RF = case2[traincase_RF,]
+test_RF = case2[-traincase_RF,]
+
+
+
+RF_model <- randomForest(Attrition ~.,data = train_RF)
+Pred_RF  <- predict(RF_model,test_RF)
+
+confusionMatrix(Pred_RF,test_RF$Attrition)
+
+#this graph tells us that which variables were most important for randomforest
+varImpPlot(RF_model)
+
+
+######## linear forecasting
+df2 <- cbind.data.frame(Monthly_income = case2$MonthlyIncome, Working_years =case2$TotalWorkingYears, 
+                        JobLevel =  case2$JobLevel)
+df2 <- as.data.frame(df2)
+
+
+
+set.seed(100)  # setting seed to reproduce results of random sampling
+
+trainingRowIndex <- sample(1:nrow(df2), 0.8*nrow(df2))  # row indices for training data
+trainingData <- df2[trainingRowIndex, ]  # model training data
+testData  <- df2[-trainingRowIndex, ]   
+
+lmMod2 <- lm(Monthly_income~JobLevel + Working_years , data=trainingData) 
+
+distPred2 <- predict(lmMod2,testData)
+results <- cbind(distPred2,testData$Monthly_income)
+results <-data.frame(results)
+lmMod2
+accuracy(results$distPred2,results$V2)
+
+````
